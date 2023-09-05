@@ -113,7 +113,8 @@ def videogen_fn(videoCapture):
   while ret:
     ret, frame = videoCapture.read()
     frame = frame[:, :, ::-1].copy()
-    yield frame 
+    if not ret: yield None
+    else: yield frame 
 
 from functools import partial
 
