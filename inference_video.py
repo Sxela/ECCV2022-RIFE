@@ -7,7 +7,6 @@ from tqdm import tqdm
 from torch.nn import functional as F
 import warnings
 import _thread
-import skvideo.io
 from queue import Queue, Empty
 from model.pytorch_msssim import ssim_matlab
 
@@ -15,7 +14,6 @@ warnings.filterwarnings("ignore")
 
 def transferAudio(sourceVideo, targetVideo):
     import shutil
-    import moviepy.editor
     tempAudioFileName = "./temp/audio.mkv"
 
     # split audio from original video file and store in "temp" directory
@@ -110,18 +108,27 @@ except:
 model.eval()
 model.device()
 
+def videogen_fn(videoCapture):
+  ret = True
+  while ret:
+    ret, frame = videoCapture.read()
+    frame = frame[:, :, ::-1].copy()
+    yield frame 
+
+from functools import partial
+
 if not args.video is None:
     videoCapture = cv2.VideoCapture(args.video)
     fps = videoCapture.get(cv2.CAP_PROP_FPS)
     tot_frame = videoCapture.get(cv2.CAP_PROP_FRAME_COUNT)
-    videoCapture.release()
     if args.fps is None:
         fpsNotAssigned = True
         args.fps = fps * (2 ** args.exp)
     else:
         fpsNotAssigned = False
-    videogen = skvideo.io.vreader(args.video)
+    videogen = videogen_fn(videoCapture)
     lastframe = next(videogen)
+
     fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
     video_path_wo_ext, ext = os.path.splitext(args.video)
     print('{}.{}, {} frames in total, {}FPS to {}FPS'.format(video_path_wo_ext, args.ext, tot_frame, fps, args.fps))
